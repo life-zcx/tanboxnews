@@ -380,6 +380,24 @@ def update_content_pack_threads_published(pack_id: int, threads_post_id: str):
     conn.commit()
     conn.close()
 
+def get_last_threads_publish_time() -> datetime | None:
+    """Returns timestamp of the most recent published Threads post for anti-spam throttling"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT threads_published_at FROM content_packs 
+        WHERE threads_post_id IS NOT NULL AND threads_published_at IS NOT NULL 
+        ORDER BY threads_published_at DESC LIMIT 1
+    """)
+    row = cursor.fetchone()
+    conn.close()
+    if row and row[0]:
+        try:
+            return datetime.strptime(row[0][:19], "%Y-%m-%d %H:%M:%S")
+        except Exception:
+            return None
+    return None
+
 def schedule_content_pack(pack_id: int, scheduled_at_iso: str):
     """Schedules a post for delayed automatic publication"""
     conn = get_connection()

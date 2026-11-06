@@ -111,6 +111,11 @@ def split_into_thread_parts(raw_text: str) -> list[str]:
             if current_tweet and len(current_tweet) >= 25:
                 final_tweets.append(current_tweet)
 
+    # Anti-spam guard: Strictly cap thread at maximum 2 parts (Root + 1 Reply)
+    if len(final_tweets) > 2:
+        merged_reply = " ".join(final_tweets[1:])
+        final_tweets = [final_tweets[0], merged_reply[:480]]
+
     return final_tweets if final_tweets else [cleaned[:500]]
 
 async def get_profile_info() -> dict:
@@ -158,8 +163,11 @@ async def create_media_container(session: aiohttp.ClientSession, text: str, repl
     async with session.post(url, data=payload) as resp:
         res_data = await resp.json()
         if resp.status != 200 or "id" not in res_data:
-            err_msg = res_data.get("error", {}).get("message", str(res_data))
-            raise RuntimeError(f"Threads container creation failed: {err_msg}")
+            err_obj = res_data.get("error", {})
+            err_msg = err_obj.get("message", str(res_data))
+            if "log in to www.threads.com" in err_msg or err_obj.get("code") == 190:
+                raise RuntimeError("Meta запросила подтверждение безопасности: откройте Threads на телефоне под @tanbox.kz и нажмите 'Это был я'.")
+            raise RuntimeError(f"Threads API: {err_msg}")
         return res_data["id"]
 
 async def wait_for_container_ready(session: aiohttp.ClientSession, container_id: str, max_attempts: int = 10) -> bool:
@@ -251,9 +259,10 @@ async def publish_full_thread(raw_text: str) -> dict:
             published_ids.append(pub_id)
             prev_post_id = pub_id
             
-            # Brief pause between sequential replies in a thread
+            # Human-like natural delay between sequential replies in a thread (15 seconds)
             if idx < len(tweets) - 1:
-                await asyncio.sleep(2)
+                logger.info(f"Anti-spam human delay: waiting 15s before posting reply...")
+                await asyncio.sleep(15)
 
     root_id = published_ids[0]
     post_url = f"https://www.threads.net/@{username}/post/{root_id}"

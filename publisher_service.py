@@ -1,6 +1,7 @@
 import logging
 import html
 import re
+from datetime import datetime
 from aiogram import Bot, types
 from aiogram.exceptions import TelegramBadRequest
 
@@ -134,6 +135,18 @@ async def publish_to_threads(pack_id: int) -> dict:
 
     if not threads_service.is_configured():
         return {"status": "error", "platform": "threads", "message": "Threads API не настроен в .env"}
+
+    # Anti-spam cooldown check: prevent rapid consecutive publications to Meta Threads (20 min cooldown)
+    last_th_time = db.get_last_threads_publish_time()
+    if last_th_time:
+        elapsed = (datetime.now() - last_th_time).total_seconds()
+        if elapsed < 1200:
+            wait_min = int((1200 - elapsed) / 60) + 1
+            return {
+                "status": "error",
+                "platform": "threads",
+                "message": f"⏳ Анти-спам защита Meta: подождите ~{wait_min} мин перед следующим постом в Threads, чтобы избежать спам-фильтра."
+            }
 
     try:
         res = await threads_service.publish_full_thread(pack["threads_post"])

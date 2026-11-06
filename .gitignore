@@ -1,0 +1,38 @@
+# Environment and secrets
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Database and SQLite
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+data/*.csv
+*.log
+data/*.log
+
+# Generated Carousels and Media
+data/carousels/
+data/carousels/*
+*.png
+*.jpg
+*.jpeg
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+

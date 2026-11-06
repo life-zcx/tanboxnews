@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  tanbox-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tanbox_news_ai
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Almaty
+    volumes:
+      # Persistent storage for SQLite database, logs, and CSV exports
+      - ./data:/app/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
